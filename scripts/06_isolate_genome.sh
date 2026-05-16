@@ -15,7 +15,7 @@
 
     # Need genome sequencing data to start, 30s/per sample
     mkdir -p temp/qc/ 
-    time tail -n+2 result/metadata.txt | cut -f1 | rush -j 2 \
+    time tail -n+2 result/metadata.txt | cut -f1 | rush -j ${NJOB} \
       "time fastp -i seq/{1}_1.fq.gz -I seq/{1}_2.fq.gz \
         -j temp/qc/{1}_fastp.json -h temp/qc/{1}_fastp.html \
         -o temp/qc/{1}_1.fastq -O temp/qc/{1}_2.fastq \
@@ -27,14 +27,14 @@
     spades.py -v # v3.15.4
     mkdir -p temp/spades result/spades
     # 127 genoms, 1m17s
-    time tail -n+2 result/metadata.txt|cut -f1|rush -j 3 \
+    time tail -n+2 result/metadata.txt|cut -f1|rush -j ${NJOB} \
     	"spades.py --pe1-1 temp/qc/{1}_1.fastq \
     	  --pe1-2 temp/qc/{1}_2.fastq \
     	  -t 16 --isolate --cov-cutoff auto \
     	  -o temp/spades/{1}" 
 	
     # Filter sequences > 1k and summarize/statistically analyze them (筛选>1k的序列并汇总、统计)
-    time tail -n+2 result/metadata.txt|cut -f1|rush -j 3 \
+    time tail -n+2 result/metadata.txt|cut -f1|rush -j ${NJOB} \
 	  "seqkit seq -m 1000 temp/spades/{1}/contigs.fasta \
 	    > temp/spades/{1}.fa"
 	  seqkit stat temp/spades/*.fa | sed 's/temp\/spades\///;s/.fa//' > result/spades/stat1k.txt
@@ -75,13 +75,13 @@
     # 分箱和提纯binning & refinement
     conda activate metawrap
     mkdir -p temp/binning temp/bin
-    time tail -n+2 temp/checkm/contamination5.txt|cut -f1|rush -j 3 \
+    time tail -n+2 temp/checkm/contamination5.txt|cut -f1|rush -j ${NJOB} \
       "metawrap binning \
         -o temp/binning/{} -t 8 \
         -a temp/spades/{}/contigs.fasta \
         --metabat2 --maxbin2 \
         temp/qc/{}_*.fastq" 
-    time tail -n+2 temp/checkm/contamination5.txt|cut -f1|rush -j 15 \
+    time tail -n+2 temp/checkm/contamination5.txt|cut -f1|rush -j ${NJOB} \
       "metawrap bin_refinement \
       -o temp/bin/{} -t 8 \
       -A temp/binning/{}/metabat2_bins/ \
@@ -157,7 +157,7 @@
       -o temp/coverm/${i}.txt -t 32
     cat temp/coverm/${i}.txt
     # 并行计算, 173样本4min
-    tail -n+2 result/metadata.txt|cut -f1|rush -j 4 \
+    tail -n+2 result/metadata.txt|cut -f1|rush -j ${NJOB} \
       "coverm genome --coupled temp/qc/{}_1.fastq temp/qc/{}_2.fastq \
       --genome-fasta-directory temp/drep95/dereplicated_genomes/ -x fa \
       -o temp/coverm/{}.txt -t 32"
@@ -232,7 +232,7 @@
   	conda activate eggnog
       prodigal -v # V2.6.3
       # 50g, 31s, 4m
-      time tail -n+2 result/metadataS.txt|cut -f1|rush -j 10 \
+      time tail -n+2 result/metadataS.txt|cut -f1|rush -j ${NJOB} \
   	"prodigal \
   	  -i temp/drep95/dereplicated_genomes/{1}.fa \
   	  -o temp/prodigal/{1}.gff  \
@@ -244,7 +244,7 @@
 
     # 碳水化合物注释
     mkdir -p temp/dbcan3 result/dbcan3
-    time tail -n+2 result/metadataS.txt|cut -f1|rush -j 9 \
+    time tail -n+2 result/metadataS.txt|cut -f1|rush -j ${NJOB} \
   	"diamond blastp \
   	  --db ${db}/dbcan3/CAZyDB \
   	  --query temp/prodigal/{1}.faa \
