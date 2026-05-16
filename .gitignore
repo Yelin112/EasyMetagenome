@@ -34,3 +34,29 @@ vignettes/*.pdf
 
 # Shiny token, see https://shiny.rstudio.com/articles/shinyapps.html
 rsconnect/
+
+# Claude Code internal directory (Claude Code内部目录)
+.claude/
+
+# ── EasyMetagenome: large data and intermediate files ──────────────────────────
+
+# Raw and cleaned sequencing data (测序原始数据)
+seq/*.fq.gz
+seq/*.fastq.gz
+
+# Intermediate analysis files (中间分析文件)
+temp/
+
+# Large binary/annotation databases (大型数据库文件)
+*.bam
+*.sam
+*.bai
+
+# Log files (日志文件)
+*.log
+
+# Legacy test result directory (遗留测试结果目录)
+result12/
+
+# Config overrides (本地配置覆盖)
+config.local.sh
