@@ -2,27 +2,20 @@
 
 # 09 EasyMetagenome Statistics and Visualization (09易宏基因组统计与可视化)
 
-    # Supports both Linux and macOS (支持Linux和macOS)
+    # Platform(平台): Linux Ubuntu 22.04+ / CentOS 7.7+
     # Authors(作者): Yong-Xin Liu(刘永鑫), Defeng Bai(白德凤), Tong Chen(陈同) et al.
     # Version(版本): 1.25, 2026/1/22
     # Usage: source config.sh first, then run commands interactively
     # 用法: 先运行 source config.sh，再交互式执行各命令
     source "$(dirname "${BASH_SOURCE[0]}")/../config.sh"
+    # ★ MODIFY: edit config.sh to set soft/db/wd — no changes needed here
+    # ★ 修改: 在 config.sh 中设置路径，此处无需改动
 
-    # Set visualization directories (设置可视化目录)
-    # Linux server: wd and sd from config.sh
-    # Mac/Windows local: set paths to local result and script directories
-    # Linux服务器: 使用config.sh中的wd和sd
-    # Mac/Windows本地: 设置为本地result和script目录路径
-    wd=${wd}/result          # Linux default; Mac: ~/github/EasyMetagenome/result
-    sd=${db}/EasyMicrobiome/script  # script directory (脚本目录)
-
-    # macOS: ensure PATH includes scripts (macOS确保脚本在PATH中)
-    if [[ "$(uname)" == "Darwin" ]]; then
-        PATH=$PATH:$sd/../mac:$sd
-    else
-        PATH=$PATH:$sd/../linux:$sd
-    fi
+    # Visualization result directory (可视化结果目录，使用config.sh中的wd)
+    wd=${wd}/result
+    # Script directory (脚本目录)
+    sd=${db}/EasyMicrobiome/script
+    PATH=$PATH:${db}/EasyMicrobiome/linux:$sd
     cd $wd
 ## MetaPhlAn4 taxonomic composition (物种组成)
 

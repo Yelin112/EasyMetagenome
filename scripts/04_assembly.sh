@@ -8,6 +8,8 @@
     # Usage: source config.sh first, then run commands interactively
     # 用法: 先运行 source config.sh，再交互式执行各命令
     source "$(dirname "${BASH_SOURCE[0]}")/../config.sh"
+    # ★ MODIFY: edit config.sh to set soft/db/wd and analysis parameters before running
+    # ★ 修改: 在 config.sh 中设置路径和分析参数，此处无需改动
     cd $wd
 ##  3.1 Assemble (组装)
 
@@ -20,7 +22,7 @@
     # /bin/rm -rf temp/megahit
     # Assembly，demo 3p 80m, TB may n days (TB数据要几天)
     megahit -v # MEGAHIT v1.2.9
-    /usr/bin/time -v megahit -t 3 \
+    /usr/bin/time -v megahit -t ${NPROC} \
         -1 `tail -n+2 result/metadata.txt|cut -f1|sed 's/^/temp\/hr\//;s/$/_1.fastq/'|tr '\n' ','|sed 's/,$//'` \
         -2 `tail -n+2 result/metadata.txt|cut -f1|sed 's/^/temp\/hr\//;s/$/_2.fastq/'|tr '\n' ','|sed 's/,$//'` \
         -o temp/megahit 
@@ -37,7 +39,7 @@
 
     # More time and memory consume (精细但使用内存和时间更多)
     mkdir -p temp/metaspades
-    /usr/bin/time -v -o metaspades.py.log metaspades.py -t 3 -m 100 \
+    /usr/bin/time -v -o metaspades.py.log metaspades.py -t ${NPROC} -m 100 \
       `tail -n+2 result/metadata.txt|cut -f1|sed 's/^/temp\/hr\//;s/$/_1.fastq/'|sed 's/^/-1 /'| tr '\n' ' '` \
       `tail -n+2 result/metadata.txt|cut -f1|sed 's/^/temp\/hr\//;s/$/_2.fastq/'|sed 's/^/-2 /'| tr '\n' ' '` \
       -o temp/metaspades
@@ -167,7 +169,7 @@
         -1 temp/hr/${i}_1.fastq -2 temp/hr/${i}_2.fastq \
         -o temp/salmon/${i}.quant
     # parallel, 1m, 18 samples 30m
-    time tail -n+2 result/metadata.txt | cut -f1 | rush -j 2 \
+    time tail -n+2 result/metadata.txt | cut -f1 | rush -j ${NJOB} \
       "salmon quant -i temp/salmon/index -l A -p 3 --meta \
         -1 temp/hr/{1}_1.fastq -2 temp/hr/{1}_2.fastq \
         -o temp/salmon/{1}.quant"
@@ -202,7 +204,7 @@
 
     # run emapper, 3p 100m, default diamond 1e-3; 2M,32p,1.5h
     time emapper.py --data_dir ${db}/eggnog \
-      -i result/NR/protein.fa --cpu 3 -m diamond --override \
+      -i result/NR/protein.fa -m diamond --cpu ${NPROC} -m diamond --override \
       -o temp/eggnog/output
 
     # Format the results and display the table headers (格式化结果并显示表头)

@@ -8,6 +8,8 @@
     # Usage: source config.sh first, then run commands interactively
     # 用法: 先运行 source config.sh，再交互式执行各命令
     source "$(dirname "${BASH_SOURCE[0]}")/../config.sh"
+    # ★ MODIFY: edit config.sh to set soft/db/wd/NPROC/NJOB/READ_LEN before running
+    # ★ 修改: 在 config.sh 中设置路径和参数，此处无需改动
     mkdir -p $wd && cd $wd
     mkdir -p seq temp result
 ## 1.1 Preparing(准备工作)
@@ -129,7 +131,7 @@
     # 多样本并行，此步占用原始数据5x空间
     # -j 2: indicates processing 2 samples simultaneously; for 6 samples, j2, 2minmutes 
     # -j 2: 表示同时处理2个样本；6个样本j2, 2分钟(minutes, m)
-    time tail -n+2 result/metadata.txt|cut -f1|rush -j 2 \
+    time tail -n+2 result/metadata.txt|cut -f1|rush -j ${NJOB} \
       "fastp -i seq/{1}_1.fq.gz -I seq/{1}_2.fq.gz \
         -j temp/qc/{1}_fastp.json -h temp/qc/{1}_fastp.html \
         -o temp/qc/{1}_1.fastq  -O temp/qc/{1}_2.fastq \
@@ -166,18 +168,18 @@
         --bypass-trim --bypass-trf --reorder \
         --bowtie2-options '--very-sensitive --dovetail' \
         -db ${db}/kneaddata/human/hg_39 \
-        --remove-intermediate-output -v -t 3
+        --remove-intermediate-output -v -t ${NPROC}
 
     # Multi-sample host removal, this step occupies 5 times the space of the original data, 3m
     # 多样本去宿主,此步占用原始数据5x空间,5m
-    time tail -n+3 result/metadata.txt | cut -f1 | rush -j 2 \
+    time tail -n+3 result/metadata.txt | cut -f1 | rush -j ${NJOB} \
       "kneaddata \
         -i1 temp/qc/{1}_1.fastq -i2 temp/qc/{1}_2.fastq \
         -o temp/hr/ \
         --bypass-trim --bypass-trf --reorder \
         --bowtie2-options '--very-sensitive --dovetail' \
         -db ${db}/kneaddata/human/hg_39 \
-        --remove-intermediate-output -v -t 3"
+        --remove-intermediate-output -v -t ${NPROC}"
 
     # To check the size, * matches any number of characters, and ? matches any single character.
     # 查看大小，*匹配任意多个字符，?匹配任意一个字符

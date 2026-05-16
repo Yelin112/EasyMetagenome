@@ -8,6 +8,8 @@
     # Usage: source config.sh first, then run commands interactively
     # 用法: 先运行 source config.sh，再交互式执行各命令
     source "$(dirname "${BASH_SOURCE[0]}")/../config.sh"
+    # ★ MODIFY: edit config.sh to set soft/db/wd and analysis parameters before running
+    # ★ 修改: 在 config.sh 中设置路径和分析参数，此处无需改动
     cd $wd
 利用宏基因组测序数据进行泛基因组分析，首先需要确定要分析泛基因组的对象，比如Alistipes属或者Alistipes putredinis菌种，这里的流程以Alistipes putredinis为例进行泛基因组数据的挖掘分析
 

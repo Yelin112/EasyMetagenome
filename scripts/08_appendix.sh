@@ -5,6 +5,9 @@
     # Source: extracted from 1Pipeline.sh Appendix
     # Authors(作者): Yong-Xin Liu(刘永鑫), Defeng Bai(白德凤), Tong Chen(陈同) et al.
     # Version(版本): 1.24, 2025/11/22
+    # ★ This file is a reference / troubleshooting guide — no parameters to set
+    # ★ 本文件为参考/排错手册，无需设置参数
+
 ## Calculation Time Statistics Table (计算时间统计表)
 
     # 在60核(p)及以上服务器，单样本3个并行推荐16p，混合组装分箱推荐32p。

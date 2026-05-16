@@ -8,6 +8,8 @@
     # Usage: source config.sh first, then run commands interactively
     # 用法: 先运行 source config.sh，再交互式执行各命令
     source "$(dirname "${BASH_SOURCE[0]}")/../config.sh"
+    # ★ MODIFY: edit config.sh to set soft/db/wd and analysis parameters before running
+    # ★ 修改: 在 config.sh 中设置路径和分析参数，此处无需改动
     cd $wd
 ## MetwWRAP binning (分箱)
 
@@ -41,7 +43,7 @@
       -o temp/bin_refine \
       -A temp/bin/metabat2_bins/ \
       -B temp/bin/maxbin2_bins/ \
-      -c 50 -x 10 -t 8
+      -c ${BIN_COMP} -x ${BIN_CONT} -t ${NPROC}
     # -C temp/bin/concoct_bins/ \
     # Bin count 22
     tail -n+2 temp/bin_refine/metawrap_50_10_bins.stats|wc -l
@@ -143,7 +145,7 @@
       -o temp/bin_refine/${g} \
       -A temp/bin/${g}/metabat2_bins/ \
       -B temp/bin/${g}/maxbin2_bins/ \
-      -c 50 -x 10 -t 32
+      -c ${BIN_COMP} -x ${BIN_CONT} -t ${NPROC}
     wc -l temp/bin_refine/${g}/metawrap_50_10_bins.stats
 
     # Together, link and rename (单样品分箱链接和重命名)
@@ -163,7 +165,7 @@
     mkdir -p temp/checkm2 result/checkm2
     # 22 genomes, 2m
     time checkm2 predict --input temp/drep95/dereplicated_genomes/* \
-      --output-directory temp/checkm2 --threads 8
+      --output-directory temp/checkm2 --threads ${NPROC}
     ln temp/checkm2/quality_report.tsv result/checkm2/
     less result/checkm2/quality_report.tsv 
 
@@ -176,7 +178,7 @@
     # dereplicate by species：10 min; 44 genome, 22 from mix samples, 22 from signle samle
     time dRep dereplicate temp/drep95/ \
       -g temp/drep_in/*.fa  \
-      -sa 0.95 -nc 0.30 -comp 50 -con 10 -p 8
+      -sa 0.95 -nc 0.30 -comp 50 -con 10 -p ${NPROC}
     # log in temp/drep95/log/cmd_logs, -d show more detail
     ls temp/drep95/dereplicated_genomes/|cut -f 1 -d '_'|sort|uniq -c
     # ls temp/drep95/dereplicated_genomes/|sed 's/.fa//' > temp/drep95/data_tables/id
@@ -192,7 +194,7 @@
     mkdir -p temp/drep99
     time dRep dereplicate temp/drep99/ \
       -g temp/drep_in/*.fa \
-      -sa 0.99 -nc 0.30 -comp 50 -con 10 -p 16
+      -sa 0.99 -nc 0.30 -comp 50 -con 10 -p ${NPROC}
     # species level 26, strain level 29
     ls -l temp/drep99/dereplicated_genomes/ | grep '.fa' | wc -l
 
@@ -209,7 +211,7 @@
     cat temp/coverm/${i}.txt
     
     # Parallel, 4min；注：尝试拆分2步，节省建索引时间
-    tail -n+3 result/metadata.txt|cut -f1|rush -j 2 \
+    tail -n+3 result/metadata.txt|cut -f1|rush -j ${NJOB} \
       "coverm genome --coupled temp/hr/{}_1.fastq temp/hr/{}_2.fastq -t 3 \
       --genome-fasta-directory temp/drep95/dereplicated_genomes/ -x fa \
       -o temp/coverm/{}.txt > temp/coverm/{}.log "
@@ -224,7 +226,7 @@
     # Group mean (按组求均值，需要metadata中有3列且每个组有多个样本)
     Rscript ${db}/EasyMicrobiome/script/otu_mean.R --input result/coverm/abundance.tsv \
       --metadata result/metadata.txt \
-      --group Group --thre 0 \
+      --group ${GROUP_COL} --thre 0 \
       --scale TRUE --zoom 100 --all TRUE --type mean \
       --output result/coverm/group_mean.txt
     # https://www.bic.ac.cn/ImageGP/ 直接选择热图可视化
@@ -242,7 +244,7 @@
         --out_dir temp/gtdb_classify \
         --extension fa --skip_ani_screen \
         --prefix tax \
-        --cpus 8
+        --cpus ${NPROC}
     # less -S view, press q quit; 26 bac short for Bacterial, 0 ar short for Archaea
     less -S temp/gtdb_classify/tax.bac120.summary.tsv
     less -S temp/gtdb_classify/tax.ar53.summary.tsv
@@ -252,12 +254,12 @@
     # 10000 genome，32p，100min
     time gtdbtk classify_wf --genome_dir temp/drep_in/ \
         --out_dir temp/gtdb_all --extension fa --skip_ani_screen \
-        --prefix tax --cpus 32
+        --prefix tax --cpus ${NPROC}
     
     # multi-sequence alignment and phylogenetic tree (多序列对齐结果建树)
     mkdir -p temp/gtdb_infer
     gtdbtk infer --msa_file temp/gtdb_classify/align/tax.bac120.user_msa.fasta.gz \
-        --out_dir temp/gtdb_infer --prefix tax --cpus 3
+        --out_dir temp/gtdb_infer --prefix tax --cpus ${NPROC}
     # tree `tax.unrooted.tree` using iTOL online visualization
 
     # Tree annotation: gtdb-tk taxonomy (tax.bac120.summary.tsv) and drep genome info(Widb.csv)

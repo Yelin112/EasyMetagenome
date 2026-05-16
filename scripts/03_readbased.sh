@@ -8,7 +8,10 @@
     # Usage: source config.sh first, then run commands interactively
     # 用法: 先运行 source config.sh，再交互式执行各命令
     source "$(dirname "${BASH_SOURCE[0]}")/../config.sh"
-    cd $wd
+    # ★ MODIFY: edit config.sh to set soft/db/wd/NPROC/NJOB/MP4_INDEX/KRAKEN2_DB/GROUP_COL/READ_LEN
+    # ★ 修改: 在 config.sh 中设置路径和参数，此处无需改动
+    mkdir -p $wd && cd $wd
+
 ## 2.1 HUMAnN4分析
 
     # HUMAnN 4: https://docs.google.com/document/d/1rCx5JkuO7wCKWrL8_-UJx_FkopJAfcDFtZktgPspak0/edit?pli=1&tab=t.0
@@ -49,16 +52,16 @@
 
     # Single-sample test (单样本测试): Y1 657M, 8p, 32min
     i=`tail -n+2 result/metadata.txt|cut -f1 | head -n1`
-    time humann --input temp/concat/${i}.fq --threads 8 \
-      --metaphlan-options "--input_type fastq --bowtie2db ${db}/metaphlan4 --index mpa_vOct22_CHOCOPhlAnSGB_202403 --offline -t rel_ab_w_read_stats --nproc 8" \
+    time humann --input temp/concat/${i}.fq --threads ${NPROC} \
+      --metaphlan-options "--input_type fastq --bowtie2db ${db}/metaphlan4 --index ${MP4_INDEX} --offline -t rel_ab_w_read_stats --nproc ${NPROC}" \
       --output temp/humann4
       
     # Multi-sample parallel computing, test data with 6 samples in dual parallel: 2h, recommended 16p, 3h/6G;
     # 多样本并行计算，测试数据6个样本双并行：2h，推荐16p，3h/6G；
     # -n+3 start from second samples, --threads set 8/16/32 to accelerate
-    time tail -n+3 result/metadata.txt | cut -f1 | rush -j 2 \
-      "humann --input temp/concat/{1}.fq --threads 8 \
-        --metaphlan-options '--input_type fastq --bowtie2db ${db}/metaphlan4 --index mpa_vOct22_CHOCOPhlAnSGB_202403 --offline -t rel_ab_w_read_stats --nproc 8'  \
+    time tail -n+3 result/metadata.txt | cut -f1 | rush -j ${NJOB} \
+      "humann --input temp/concat/{1}.fq --threads ${NPROC} \
+        --metaphlan-options '--input_type fastq --bowtie2db ${db}/metaphlan4 --index ${MP4_INDEX} --offline -t rel_ab_w_read_stats --nproc ${NPROC}'  \
         --output temp/humann4/ "
 
     # (Optional) Run MetaPhlAn4 separately (可选)单独运行MetaPhlAn4
@@ -67,7 +70,7 @@
     i=`tail -n+2 result/metadata.txt|cut -f1 | head -n1`
     # taxonomy classification 8p, 4min
     time metaphlan --input_type fastq temp/hr/${i}_1.fastq \
-      temp/metaphlan4/${i}.txt --nproc 8 --bowtie2db ${db}/metaphlan4 --index mpa_vOct22_CHOCOPhlAnSGB_202403 --offline
+      temp/metaphlan4/${i}.txt --nproc ${NPROC} --bowtie2db ${db}/metaphlan4 --index ${MP4_INDEX} --offline
 
 ### Taxonomic composition table (物种组成表)
 
@@ -139,7 +142,7 @@
     # List of samples ID (提取样品列表)
     head -n1 result/humann4/path.tsv | sed 's/# Pathway HUMAnN v4.0.0.alpha.1/SampleID/' | tr '\t' '\n' > temp/header
     # The sample corresponds to group; in this example group is the 3rd column ($3) 样本对应分组，本示例分组为第3列($3)
-    awk 'BEGIN{FS=OFS="\t"}NR==FNR{a[$1]=$3}NR>FNR{print a[$1]}' result/metadata.txt temp/header | tr '\n' '\t'|sed 's/\t$/\n/' > temp/group
+    awk -v gcol=${GROUP_COL} 'BEGIN{FS=OFS="\t"}NR==FNR{a[$1]=$gcol}NR>FNR{print a[$1]}' result/metadata.txt temp/header | tr '\n' '\t'|sed 's/\t$/\n/' > temp/group
     # replace grouping
     cat <(head -n1 result/humann4/path.tsv) temp/group <(tail -n+2 result/humann4/path.tsv) \
       > result/humann4/path.pcl
@@ -247,7 +250,7 @@
     head -n1 $result/metaphlan4/taxonomy.tsv|tr '\t' '\n'|sed '1 s/ID/SampleID/' > temp/sampleid
     head -n3 temp/sampleid
     # 提取SampleID对应的分组Group(假设为metadata.txt中第二列$2)，替换换行\n为制表符\t，再把行末制表符\t替换回换行
-    awk 'BEGIN{OFS=FS="\t"}NR==FNR{a[$1]=$3}NR>FNR{print a[$1]}' \
+    awk 'BEGIN{OFS=FS="\t"}NR==FNR{a[$1]=$}NR>FNR{print a[$1]}' \
       $result/metadata.txt temp/sampleid|tr '\n' '\t'|sed 's/\t$/\n/' >temp/groupid
     cat temp/groupid
     sed 's/SampleID/subject_id/' temp/sampleid | tr '\n' '\t'|sed 's/\t$/\n/' > temp/sampleid2
@@ -309,10 +312,10 @@
     # Output(输出结果): temp/kraken2/{1}_report and {1}_output
     # Feature table(物种丰度表): result/kraken2/taxonomy_count.txt 
 
-    # Select a database based on server memory size or specific analytical needs
-    # 根据服务器内存大小或具体分析需求选择数据库
+    # ★ MODIFY: set KRAKEN2_DB in config.sh to match your server memory
+    # ★ 修改: 在 config.sh 中设置 KRAKEN2_DB (pluspf16g/pluspf/pluspfp)
     # pluspf16g for small memory / pluspf(100G) for human/animial / pluspfp(214G) for plant/soil
-    type=pluspf16g
+    type=${KRAKEN2_DB}
     # test first sample, 2min
     i=`tail -n+2 result/metadata.txt|cut -f1 | head -n1`
     time kraken2 --db ${db}/kraken2/${type}/ \
@@ -377,9 +380,9 @@
     # 循环重新估计每个样品的丰度，请修改tax分别重新计算P和S各1次
     mkdir -p temp/bracken
     # read length (测序数据长度)、
-    readLen=150
+    readLen=${READ_LEN}
     # Only those present in 20% of the samples are retained (20%样本中存在才保留)
-    prop=0.2
+    prop=${BRACKEN_PROP}
     # Classification is set into D, P, C, O, F, G, S, with commonly used categories being Kingdom (D), Phylum (P), Genus (G), and Species (S).
     # 设置分类级D,P,C,O,F,G,S，常用界D门P和属G种S
     for tax in P G S;do
