@@ -1,0 +1,5 @@
+SampleID	Group	Description
+Y1	Young	Young healthy volunteer 1
+Y2	Young	Young healthy volunteer 2
+C1	Control	Control sample 1
+C2	Control	Control sample 2
